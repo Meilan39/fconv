@@ -41,11 +41,8 @@ def convert_svg_to_pdf_inkscape(src: str, dst: str, opts: ConvertOptions) -> Non
 # --- SVG -> PNG ---
 
 def build_svg_to_png_inkscape_cmd(src: str, dst: str, opts: ConvertOptions) -> List[str]:
-    cmd = ["inkscape", "-o", dst]
-    if opts.dpi is not None:
-        cmd.extend(["-d", str(opts.dpi)])
-    cmd.append(src)
-    return cmd
+    dpi = opts.dpi if opts.dpi is not None else 300
+    return ["inkscape", "-o", dst, "-d", str(dpi), src]
 
 
 def convert_svg_to_png_inkscape(src: str, dst: str, opts: ConvertOptions) -> None:

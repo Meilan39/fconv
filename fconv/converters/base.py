@@ -1,8 +1,6 @@
 """Base utilities for converter implementations."""
 
 import os
-import shutil
-from typing import List, Optional
 from fconv.engine.process import resolve_binary
 
 

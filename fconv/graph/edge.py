@@ -36,6 +36,9 @@ class Edge:
     execute: Callable[[str, str, ConvertOptions], None]
     command_preview: Callable[[str, str, ConvertOptions], List[str]]
     fidelity: FidelityClass = FidelityClass.LOSSLESS_RASTER
+    terminal_only: bool = False
+    supports_dpi: bool = True
+    default_dpi: int = 300
 
     @property
     def key(self) -> str:
@@ -44,7 +47,11 @@ class Edge:
     def get_notice(self, opts: ConvertOptions) -> Optional[str]:
         """Generate human-readable warning notice if conversion is lossy or degrading."""
         if self.fidelity == FidelityClass.VECTOR_RASTERIZATION:
-            dpi_str = f" at {opts.dpi or 300} DPI" if (opts.dpi or self.source in ("svg", "pdf")) else ""
+            if self.supports_dpi and (opts.dpi is not None or self.source in ("svg", "pdf")):
+                dpi_val = opts.dpi if opts.dpi is not None else self.default_dpi
+                dpi_str = f" at {dpi_val} DPI"
+            else:
+                dpi_str = ""
             return f"Irreversible vector rasterization ({self.source.upper()} -> {self.target.upper()}{dpi_str})"
 
         if self.fidelity == FidelityClass.LOSSY_COMPRESSION:

@@ -1,11 +1,12 @@
 """Headless browser adapter for HTML to PDF rendering."""
 
 import os
+from pathlib import Path
 import shutil
 import tempfile
 from typing import List, Optional
 from fconv.converters.base import ensure_parent_dir
-from fconv.engine.process import run_process
+from fconv.engine.process import resolve_binary, run_process
 from fconv.options import ConvertOptions
 
 # Cross-platform browser candidates
@@ -38,7 +39,7 @@ def find_browser_binary() -> Optional[str]:
             if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
                 return candidate
         else:
-            found = shutil.which(candidate)
+            found = resolve_binary(candidate) or shutil.which(candidate)
             if found:
                 return found
     return None
@@ -49,25 +50,26 @@ def has_browser() -> bool:
 
 
 def build_browser_pdf_cmd(src: str, dst: str, opts: ConvertOptions, user_data_dir: str) -> List[str]:
-    browser_bin = find_browser_binary()
-    if not browser_bin:
-        raise RuntimeError("No compatible headless browser (Google Chrome, Chromium, Brave) found.")
-
-    abs_src = os.path.abspath(src)
+    browser_bin = find_browser_binary() or "google-chrome"
+    file_uri = Path(os.path.abspath(src)).as_uri()
+    abs_dst = os.path.abspath(dst)
     cmd = [
         browser_bin,
         "--headless",
         "--no-sandbox",
         "--disable-gpu",
         f"--user-data-dir={user_data_dir}",
+        "--virtual-time-budget=3000",
         "--no-pdf-header-footer",
-        f"--print-to-pdf={dst}",
-        f"file://{abs_src}",
+        f"--print-to-pdf={abs_dst}",
+        file_uri,
     ]
     return cmd
 
 
 def convert_html_to_pdf_browser(src: str, dst: str, opts: ConvertOptions) -> None:
+    if not find_browser_binary():
+        raise RuntimeError("No compatible headless browser (Google Chrome, Chromium, Brave) found.")
     ensure_parent_dir(dst)
     with tempfile.TemporaryDirectory(prefix="fconv_chrome_") as temp_profile:
         cmd = build_browser_pdf_cmd(src, dst, opts, user_data_dir=temp_profile)

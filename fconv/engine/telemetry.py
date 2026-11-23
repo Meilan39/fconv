@@ -2,8 +2,8 @@
 
 import json
 import os
-from dataclasses import asdict, dataclass
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import List
 
 
 def format_bytes(num_bytes: int) -> str:
@@ -20,10 +20,12 @@ def format_bytes(num_bytes: int) -> str:
 def format_ratio(src_bytes: int, dst_bytes: int) -> str:
     """Calculate percentage change between source and destination sizes."""
     if src_bytes <= 0:
-        return "+0.0%"
+        return "+0.0%" if dst_bytes == 0 else "N/A"
     delta = dst_bytes - src_bytes
     pct = (delta / src_bytes) * 100.0
-    sign = "+" if pct >= 0 else ""
+    if round(pct, 1) == 0.0:
+        return "+0.0%"
+    sign = "+" if pct > 0 else ""
     return f"{sign}{pct:.1f}%"
 
 
@@ -71,12 +73,17 @@ class TelemetryRecord:
 
     def to_json(self) -> str:
         """Render JSON telemetry record for automated pipelines."""
+        ratio_val = (
+            round(self.target_bytes / self.source_bytes, 4)
+            if self.source_bytes > 0
+            else (1.0 if self.target_bytes == 0 else None)
+        )
         payload = {
             "source": self.source_path,
             "target": self.target_path,
             "source_bytes": self.source_bytes,
             "target_bytes": self.target_bytes,
-            "ratio": round(self.target_bytes / self.source_bytes, 4) if self.source_bytes > 0 else 1.0,
+            "ratio": ratio_val,
             "duration_ms": round(self.duration_ms, 2),
             "engines": self.engines,
             "fidelities": self.fidelities,

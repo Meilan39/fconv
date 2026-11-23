@@ -1,5 +1,6 @@
 """macOS native adapters: sips and textutil."""
 
+import sys
 from typing import List
 from fconv.converters.base import ensure_parent_dir, is_tool_installed
 from fconv.engine.process import run_process
@@ -7,11 +8,11 @@ from fconv.options import ConvertOptions
 
 
 def has_sips() -> bool:
-    return is_tool_installed("sips")
+    return sys.platform == "darwin" and is_tool_installed("sips")
 
 
 def has_textutil() -> bool:
-    return is_tool_installed("textutil")
+    return sys.platform == "darwin" and is_tool_installed("textutil")
 
 
 # --- sips: Image & PDF wrappers ---

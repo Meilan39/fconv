@@ -25,11 +25,30 @@ def convert_image_to_webp(src: str, dst: str, opts: ConvertOptions) -> None:
     run_process(cmd, timeout=opts.timeout, verbose=opts.verbose)
 
 
-def build_dwebp_cmd(src: str, dst: str, opts: ConvertOptions) -> List[str]:
-    return ["dwebp", src, "-o", dst]
+def build_dwebp_cmd(
+    src: str,
+    dst: str,
+    opts: ConvertOptions,
+    target_fmt: str = "png",
+) -> List[str]:
+    fmt = target_fmt.lower()
+    if fmt not in ("png", "bmp", "tiff"):
+        raise ValueError(f"Unsupported dwebp output format: {target_fmt}")
+    cmd = ["dwebp", src]
+    if fmt == "bmp":
+        cmd.append("-bmp")
+    elif fmt == "tiff":
+        cmd.append("-tiff")
+    cmd.extend(["-o", dst])
+    return cmd
 
 
-def convert_webp_to_image(src: str, dst: str, opts: ConvertOptions) -> None:
+def convert_webp_to_image(
+    src: str,
+    dst: str,
+    opts: ConvertOptions,
+    target_fmt: str = "png",
+) -> None:
     ensure_parent_dir(dst)
-    cmd = build_dwebp_cmd(src, dst, opts)
+    cmd = build_dwebp_cmd(src, dst, opts, target_fmt=target_fmt)
     run_process(cmd, timeout=opts.timeout, verbose=opts.verbose)

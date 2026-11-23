@@ -7,7 +7,6 @@ from typing import Dict, Optional, Set
 EXTENSION_MAP: Dict[str, str] = {
     # Vector formats
     "svg": "svg",
-    "svgz": "svg",
     "pdf": "pdf",
     
     # Raster formats

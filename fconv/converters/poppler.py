@@ -23,11 +23,8 @@ def has_pdftotext() -> bool:
 # --- pdftocairo: PDF -> SVG ---
 
 def build_pdf_to_svg_cmd(src: str, dst: str, opts: ConvertOptions) -> List[str]:
-    cmd = ["pdftocairo", "-svg"]
-    if opts.page is not None:
-        cmd.extend(["-f", str(opts.page), "-l", str(opts.page)])
-    cmd.extend([src, dst])
-    return cmd
+    page = opts.page or 1
+    return ["pdftocairo", "-svg", "-f", str(page), "-l", str(page), src, dst]
 
 
 def convert_pdf_to_svg(src: str, dst: str, opts: ConvertOptions) -> None:
@@ -36,7 +33,7 @@ def convert_pdf_to_svg(src: str, dst: str, opts: ConvertOptions) -> None:
     run_process(cmd, timeout=opts.timeout, verbose=opts.verbose)
 
 
-# --- pdftoppm: PDF -> PNG ---
+# --- pdftoppm: PDF -> PNG / JPG / TIFF ---
 
 def _get_ppm_root(dst: str, ext: str) -> str:
     """Strip extension from dst to provide the PPM root path."""
@@ -47,7 +44,7 @@ def _get_ppm_root(dst: str, ext: str) -> str:
 
 def build_pdf_to_png_cmd(src: str, dst: str, opts: ConvertOptions) -> List[str]:
     root = _get_ppm_root(dst, ".png")
-    dpi = str(opts.dpi or 300)
+    dpi = str(opts.dpi if opts.dpi is not None else 300)
     cmd = ["pdftoppm", "-png", "-r", dpi, "-singlefile"]
     page = opts.page or 1
     cmd.extend(["-f", str(page), "-l", str(page)])
@@ -60,19 +57,18 @@ def convert_pdf_to_png(src: str, dst: str, opts: ConvertOptions) -> None:
     root = _get_ppm_root(dst, ".png")
     cmd = build_pdf_to_png_cmd(src, dst, opts)
     run_process(cmd, timeout=opts.timeout, verbose=opts.verbose)
-    # pdftoppm produces {root}.png
     expected_output = f"{root}.png"
-    if expected_output != dst and os.path.exists(expected_output):
+    if os.path.abspath(expected_output) != os.path.abspath(dst) and os.path.exists(expected_output):
         shutil.move(expected_output, dst)
 
-
-# --- pdftoppm: PDF -> JPG ---
 
 def build_pdf_to_jpg_cmd(src: str, dst: str, opts: ConvertOptions) -> List[str]:
     ext = ".jpeg" if dst.lower().endswith(".jpeg") else ".jpg"
     root = _get_ppm_root(dst, ext)
-    dpi = str(opts.dpi or 300)
+    dpi = str(opts.dpi if opts.dpi is not None else 300)
     cmd = ["pdftoppm", "-jpeg", "-r", dpi, "-singlefile"]
+    if opts.quality is not None:
+        cmd.extend(["-jpegopt", f"quality={opts.quality}"])
     page = opts.page or 1
     cmd.extend(["-f", str(page), "-l", str(page)])
     cmd.extend([src, root])
@@ -88,7 +84,31 @@ def convert_pdf_to_jpg(src: str, dst: str, opts: ConvertOptions) -> None:
     expected_output = f"{root}.jpg"
     if not os.path.exists(expected_output):
         expected_output = f"{root}.jpeg"
-    if expected_output != dst and os.path.exists(expected_output):
+    if os.path.abspath(expected_output) != os.path.abspath(dst) and os.path.exists(expected_output):
+        shutil.move(expected_output, dst)
+
+
+def build_pdf_to_tiff_cmd(src: str, dst: str, opts: ConvertOptions) -> List[str]:
+    ext = ".tiff" if dst.lower().endswith(".tiff") else ".tif"
+    root = _get_ppm_root(dst, ext)
+    dpi = str(opts.dpi if opts.dpi is not None else 300)
+    cmd = ["pdftoppm", "-tiff", "-r", dpi, "-singlefile"]
+    page = opts.page or 1
+    cmd.extend(["-f", str(page), "-l", str(page)])
+    cmd.extend([src, root])
+    return cmd
+
+
+def convert_pdf_to_tiff(src: str, dst: str, opts: ConvertOptions) -> None:
+    ensure_parent_dir(dst)
+    ext = ".tiff" if dst.lower().endswith(".tiff") else ".tif"
+    root = _get_ppm_root(dst, ext)
+    cmd = build_pdf_to_tiff_cmd(src, dst, opts)
+    run_process(cmd, timeout=opts.timeout, verbose=opts.verbose)
+    expected_output = f"{root}.tif"
+    if not os.path.exists(expected_output):
+        expected_output = f"{root}.tiff"
+    if os.path.abspath(expected_output) != os.path.abspath(dst) and os.path.exists(expected_output):
         shutil.move(expected_output, dst)
 
 

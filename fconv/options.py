@@ -16,11 +16,13 @@ class ConvertOptions:
     json_output: bool = False
     timeout: int = 60
 
-    def for_intermediate(self) -> "ConvertOptions":
+    def for_intermediate(self, preserve_dpi_none: bool = False) -> "ConvertOptions":
         """Return options tailored for intermediate transformation steps."""
+        dpi = self.dpi if preserve_dpi_none else (self.dpi if self.dpi is not None else 300)
+        quality = max(self.quality, 95) if self.quality is not None else 95
         return ConvertOptions(
-            dpi=self.dpi or 300,
-            quality=self.quality or 95,
+            dpi=dpi,
+            quality=quality,
             page=self.page,
             engine=None,
             verbose=self.verbose,
